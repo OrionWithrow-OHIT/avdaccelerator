@@ -473,6 +473,22 @@ param time string = utcNow()
 @sys.description('Enable usage and telemetry feedback to Microsoft.')
 param enableTelemetry bool = true
 
+// Parameters to add new subscription to the vWAN
+@sys.description('Do we need to Connect our Virtual Network to a vWAN Virtual Hub? (Default: false)')
+param peertovWanVirtualHub bool = false
+
+@sys.description('The Name for the vWAN Hub in Connecticity Subscription')
+param vWANHubName string
+
+@sys.description('The Id for the Hub Connecticity Subscription that contains the vWAN')
+param vWANSubscriptionId string
+
+@sys.description('The Resource Group Name that contains the vWAN')
+param vWANResourceGroupName string
+
+@sys.description('The Connection Name that will be displayed in the vWAN')
+param vWANConnectionName string
+
 // =========== //
 // Variable declaration //
 // =========== //
@@ -929,6 +945,20 @@ module networking './modules/networking/deploy.bicep' = if (createAvdVnet || cre
         baselineNetworkResourceGroup
         monitoringDiagnosticSettings
         baselineResourceGroups
+    ]
+}
+
+// Create a vWAN Hub Virtual Network Connection to Peer our AVD Virtual Network to the vWAN Hub
+module hubVirtualNetworkConnection '../../_CARML/1.3.0/Microsoft.Network/virtualHubs/hubVirtualNetworkConnections/deploy.bicep' = if (peertovWanVirtualHub) {
+    name: 'PeervWAN-${time}'
+    scope: resourceGroup(vWANSubscriptionId, vWANResourceGroupName)
+    params: {
+        name: vWANConnectionName
+        virtualHubName: vWANHubName
+        remoteVirtualNetworkId: networking.outputs.virtualNetworkResourceId
+    }
+    dependsOn: [
+        networking
     ]
 }
 
